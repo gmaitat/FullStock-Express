@@ -28,7 +28,9 @@ const DATA_PATH = path.join("data", "data.json"); // "./data/data.json"
 
 // Rutas
 app.get("/", (req, res) => {
-  res.render("index");
+  res.render("index", {
+    namePage: "Inicio",
+  });
 });
 
 app.get("/category/:slug", async (req, res) => {
@@ -49,7 +51,9 @@ app.get("/category/:slug", async (req, res) => {
   );
 
   if (!categoryFind) {
-    return res.status(404).render("404");
+    return res.status(404).render("404", {
+      namePage: "Página no encontrada",
+    });
   }
 
   // Obtenemos todos los productos que tengan la categoria encontrada
@@ -64,34 +68,70 @@ app.get("/category/:slug", async (req, res) => {
   });
 });
 
-app.get("/product/:id", (req, res) => {
+app.get("/products/:id", async (req, res) => {
+  const { id } = req.params;
+
+  // Convertir el id a número
+  const productId = Number(id);
+
+  // Leer mi archivo data.json
+  const dataJson = await fs.readFile(DATA_PATH, "utf-8");
+
+  // Convertir el json a objeto
+  const data = JSON.parse(dataJson);
+
+  // Desestructuramos el data en products
+  const { products } = data;
+
+  // Buscar el producto por id
+  const productFind = products.find((product) => product.id === productId);
+
+  if (!productFind) {
+    return res.status(404).render("404", {
+      namePage: "Página no encontrada",
+    });
+  }
+
   res.render("product", {
-    namePage: "Producto",
+    namePage: productFind.name,
+    product: productFind,
   });
 });
 
 app.get("/cart", (req, res) => {
-  res.render("cart");
+  res.render("cart", {
+    namePage: "Carrito",
+  });
 });
 
 app.get("/checkout", (req, res) => {
-  res.render("checkout");
+  res.render("checkout", {
+    namePage: "Checkout",
+  });
 });
 
 app.get("/order-confirmation", (req, res) => {
-  res.render("order-confirmation");
+  res.render("order-confirmation", {
+    namePage: "Confirmación de Pedido",
+  });
 });
 
 app.get("/about", (req, res) => {
-  res.render("about");
+  res.render("about", {
+    namePage: "Acerca de",
+  });
 });
 
 app.get("/terms", (req, res) => {
-  res.render("terms");
+  res.render("terms", {
+    namePage: "Términos y Condiciones",
+  });
 });
 
 app.get("/privacy", (req, res) => {
-  res.render("privacy");
+  res.render("privacy", {
+    namePage: "Política de Privacidad",
+  });
 });
 
 // Escuchamos peticiones del cliente.
