@@ -395,6 +395,40 @@
       "total": 60,
       "status": "pending",
       "createdAt": "2026-02-22T23:50:52.697Z"
+    },
+    {
+      "id": 2,
+      "items": [
+        {
+          "productId": 1,
+          "name": "Polo React",
+          "price": 2000,
+          "imgSrc": "/images/polos/polo-react.png",
+          "quantity": 2
+        },
+        {
+          "productId": 20,
+          "name": "Taza Git",
+          "price": 1299,
+          "imgSrc": "/images/tazas/taza-git.png",
+          "quantity": 3
+        }
+      ],
+      "shippingInfo": {
+        "email": "gmaitatorres@gmail.com",
+        "firstName": "Gabriel",
+        "lastName": "Maita Torres",
+        "company": "ACENTI",
+        "address": "Av. La Cultura, Cusco 08003",
+        "city": "CUSCO",
+        "country": "PE",
+        "region": "CUSCO",
+        "zipCode": "+51",
+        "phone": "962627146"
+      },
+      "total": 78.97,
+      "status": "pending",
+      "createdAt": "2026-02-23T00:35:51.690Z"
     }
   ]
 }

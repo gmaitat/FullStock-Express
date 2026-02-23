@@ -1,75 +1,43 @@
-import * as cartRepository from "../repositories/cartRepository.js";
-import * as productRepository from "../repositories/productRepository.js";
+import AddItemToCart from "../domain/usecases/AddItemToCart.js";
+import GetCart from "../domain/usecases/GetCart.js";
+import UpdateItemQuantity from "../domain/usecases/UpdateItemQuantity.js";
+import RemoveItemFromCart from "../domain/usecases/RemoveItemFromCart.js";
+import ClearCart from "../domain/usecases/ClearCart.js";
+import cartRepositoryAdapter from "../adapters/repositories/cartRepositoryAdapter.js";
+import productRepositoryAdapter from "../adapters/repositories/productRepositoryAdapter.js";
 
 export async function getCart(cartId) {
   if (!cartId) return null;
-  const cart = await cartRepository.find(cartId);
-  if (!cart) return null;
-
-  const products = await productRepository.findAll();
-
-  const cartItemsDetailed = cart.items.map((item) => {
-    const product = products.find((p) => p.id === item.productId) || null;
-    const subtotal = product ? (product.price * item.quantity) / 100 : 0;
-    return {
-      ...item,
-      product,
-      subtotal,
-    };
+  const usecase = new GetCart({
+    cartRepository: cartRepositoryAdapter,
+    productRepository: productRepositoryAdapter,
   });
-
-  const total = cartItemsDetailed.reduce((acc, it) => acc + it.subtotal, 0);
-
-  return {
-    id: cart.id,
-    items: cartItemsDetailed,
-    total,
-  };
+  return usecase.execute(cartId);
 }
 
 export async function addItemToCart(cartId, productId) {
-  let cart = null;
-  if (cartId) cart = await cartRepository.find(cartId);
-  if (!cart) {
-    cart = await cartRepository.create();
-  }
-
-  const product = (await productRepository.findAll()).find(
-    (p) => p.id === Number(productId),
-  );
-  if (!product) throw new Error("Producto no encontrado");
-
-  const item = cart.items.find((it) => it.productId === Number(productId));
-  if (item) item.quantity += 1;
-  else cart.items.push({ productId: Number(productId), quantity: 1 });
-
-  await cartRepository.update(cart);
-  return cart;
+  const usecase = new AddItemToCart({
+    cartRepository: cartRepositoryAdapter,
+    productRepository: productRepositoryAdapter,
+  });
+  return usecase.execute(cartId, productId);
 }
 
 export async function updateItemQuantity(cartId, productId, quantity) {
-  if (!cartId) throw new Error("cartId requerido");
-  const cart = await cartRepository.find(cartId);
-  if (!cart) throw new Error("Carrito no encontrado");
-  const item = cart.items.find((it) => it.productId === Number(productId));
-  if (item) item.quantity = Number(quantity);
-  await cartRepository.update(cart);
-  return cart;
+  const usecase = new UpdateItemQuantity({
+    cartRepository: cartRepositoryAdapter,
+  });
+  return usecase.execute(cartId, productId, quantity);
 }
 
 export async function removeItemFromCart(cartId, productId) {
-  if (!cartId) return null;
-  const cart = await cartRepository.find(cartId);
-  if (!cart) return null;
-  cart.items = cart.items.filter((it) => it.productId !== Number(productId));
-  await cartRepository.update(cart);
-  return cart;
+  const usecase = new RemoveItemFromCart({
+    cartRepository: cartRepositoryAdapter,
+  });
+  return usecase.execute(cartId, productId);
 }
 
 export async function clearCart(cartId) {
-  if (!cartId) return;
-  const cart = await cartRepository.find(cartId);
-  if (!cart) return;
-  cart.items = [];
-  await cartRepository.update(cart);
+  const usecase = new ClearCart({ cartRepository: cartRepositoryAdapter });
+  return usecase.execute(cartId);
 }
