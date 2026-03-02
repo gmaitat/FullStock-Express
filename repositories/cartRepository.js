@@ -6,11 +6,17 @@ export async function find(id) {
   return carts.find((c) => c.id === Number(id)) || null;
 }
 
-export async function create() {
+export async function findByUserId(userId) {
+  const db = await getDb();
+  const carts = db.carts || [];
+  return carts.find((c) => c.userId === Number(userId)) || null;
+}
+
+export async function create(userId = null) {
   const db = await getDb();
   db.carts = db.carts || [];
   const id = await getNextId("carts");
-  const newCart = { id, items: [] };
+  const newCart = { id, items: [], userId: userId ? Number(userId) : null };
   db.carts.push(newCart);
   await saveDb(db);
   return newCart;
@@ -24,4 +30,11 @@ export async function update(cart) {
   else db.carts.push(cart);
   await saveDb(db);
   return cart;
+}
+
+export async function remove(id) {
+  const db = await getDb();
+  db.carts = db.carts || [];
+  db.carts = db.carts.filter((c) => c.id !== Number(id));
+  await saveDb(db);
 }

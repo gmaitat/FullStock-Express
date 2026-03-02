@@ -1,0 +1,15 @@
+.login {
+  padding: 2rem 0;
+}
+
+.login__form {
+  max-width: 420px;
+}
+
+.login .error-message {
+  background: #ffe6e6;
+  color: #990000;
+  padding: 0.6rem 0.8rem;
+  border-radius: 4px;
+  margin-bottom: 1rem;
+}

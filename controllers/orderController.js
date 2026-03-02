@@ -3,10 +3,7 @@ import * as orderService from "../services/orderService.js";
 import { AppError } from "../utils/errorUtils.js";
 
 export async function renderCheckout(req, res) {
-  const cart = (await cartService.getCart(req.cartId)) || {
-    items: [],
-    total: 0,
-  };
+  const cart = req.cart || { items: [], total: 0 };
   res.render("checkout", {
     cartItems: cart.items,
     total: cart.total,
@@ -15,7 +12,8 @@ export async function renderCheckout(req, res) {
 
 export async function placeOrder(req, res) {
   const shippingInfo = req.body;
-  const newOrder = await orderService.processCheckout(req.cartId, shippingInfo);
+  const userId = req.user ? req.user.id : null;
+  const newOrder = await orderService.processCheckout(req.cartId, shippingInfo, userId);
   res.redirect(`/order-confirmation?orderId=${newOrder.id}`);
 }
 

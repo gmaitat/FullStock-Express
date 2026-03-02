@@ -43,6 +43,8 @@
             type="email"
             autocomplete="email"
             required
+            value="<%= user ? user.email : '' %>"
+            <%= user ? 'readonly' : '' %>
           />
         </div>
         <div class="separator checkout__separator"></div>

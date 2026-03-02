@@ -1,0 +1,15 @@
+.auth-nav {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+}
+
+.auth-nav__link {
+  color: inherit;
+  text-decoration: none;
+  padding: 0.4rem 0.6rem;
+}
+
+.auth-nav__link:hover {
+  text-decoration: underline;
+}
