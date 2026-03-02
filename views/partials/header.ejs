@@ -21,6 +21,19 @@
           </span>
         </a>
       </div>
+      <% if (user) { %>
+      <div class="auth-nav">
+        <span class="auth-nav__welcome">Hola, <%= user.email %></span>
+        <form action="/logout" method="post" style="display:inline">
+          <button class="button button--ghost" type="submit">Cerrar sesión</button>
+        </form>
+      </div>
+      <% } else { %>
+      <div class="auth-nav">
+        <a class="auth-nav__link" href="/login">Iniciar sesión</a>
+        <a class="auth-nav__link" href="/signup">Crear cuenta</a>
+      </div>
+      <% } %>
     </div>
     <div class="separator header-main__separator"></div>
     <nav aria-label="Navegación principal" class="main-nav">

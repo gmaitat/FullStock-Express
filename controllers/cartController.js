@@ -16,13 +16,19 @@ function cookieOptions() {
 export async function addItem(req, res) {
   const productId = Number(req.body.productId);
   const currentCartId = req.cartId || null;
+  const userId = req.user ? req.user.id : null;
 
   try {
-    const cart = await cartService.addItemToCart(currentCartId, productId);
+    const cart = await cartService.addItemToCart(currentCartId, productId, userId);
 
-    // If cart was created and user had no cartId, set cookie
-    if (!currentCartId || Number(currentCartId) !== Number(cart.id)) {
+    // If cart was created for guest (no user), set cookie
+    if (!userId && (!currentCartId || Number(currentCartId) !== Number(cart.id))) {
       res.cookie(COOKIE_NAME, cart.id, cookieOptions());
+    }
+
+    // If user is logged, ensure no guest cart cookie remains
+    if (userId) {
+      res.clearCookie(COOKIE_NAME, cookieOptions());
     }
 
     res.redirect(`/product/${productId}`);
@@ -32,8 +38,7 @@ export async function addItem(req, res) {
 }
 
 export async function renderCart(req, res) {
-  const cartId = req.cartId || null;
-  const cart = (await cartService.getCart(cartId)) || { items: [], total: 0 };
+  const cart = req.cart || { items: [], total: 0 };
   res.render("cart", { cartItems: cart.items, total: cart.total });
 }
 
