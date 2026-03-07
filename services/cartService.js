@@ -1,110 +1,162 @@
 import * as cartRepository from "../repositories/cartRepository.js";
 import * as productRepository from "../repositories/productRepository.js";
 
-async function hydrateCart(cart) {
+export async function getCart(cartId) {
+  const cart = (await cartRepository.find(cartId)) || { id: 1, items: [] };
+
   const products = await productRepository.findAll();
-  const items = (cart.items || []).map((item) => {
-    const product = products.find((p) => p.id === Number(item.productId)) || null;
-    const subtotal = product ? (product.price * item.quantity) / 100 : 0;
-    return { ...item, product, subtotal };
+
+  // Modificar los items del carrito de compras
+  const cartItemsDetailed = cart.items.map((item) => {
+    const product = products.find((product) => product.id === item.productId);
+
+    //hallando subtotal de cada producto
+    const subtotal = (product.price * item.quantity) / 100;
+
+    return {
+      ...item,
+      product,
+      subtotal,
+    };
   });
-  const total = items.reduce((acc, it) => acc + it.subtotal, 0);
-  return { id: cart.id, items, total, userId: cart.userId || null };
+
+  //  calculando en total del carrito
+  const total = cartItemsDetailed.reduce(
+    (acumulador, item) => acumulador + item.subtotal,
+    0,
+  );
+
+  return {
+    items: cartItemsDetailed,
+    total,
+  };
 }
 
-export async function getCart(cartId) {
-  if (!cartId) return null;
-  const cart = await cartRepository.find(cartId);
-  if (!cart) return null;
-  return await hydrateCart(cart);
+export async function getCartById(id) {
+  const cart = await cartRepository.find(id);
+  return cart;
 }
 
 export async function getCartByUserId(userId) {
-  if (!userId) return null;
   const cart = await cartRepository.findByUserId(userId);
-  if (!cart) return null;
-  return await hydrateCart(cart);
+  return cart;
 }
 
-export async function getOrCreateCart(cartId = null, userId = null) {
-  // Try by cartId
+// Modifica addItemToCart(cartId, productId):
+
+// Primero, intenta buscar el carrito con cartRepository.find(cartId).
+// Si cart es null (no existe o cartId era undefined), crea uno nuevo usando cartRepository.create().
+// Procede a agregar el producto al carrito encontrado (o recién creado).
+// Retorna el carrito actualizado.
+
+// function para buscar el carrito dependiendo si es por id o por userId
+export async function getOrCreateCart(cartId, userId = null) {
+  let cart; // undefined
+
+  // cartId = null;
+  // userId = 1;
+
+  // cuando existe un cartId
   if (cartId) {
-    const existing = await cartRepository.find(cartId);
-    if (existing) return existing;
+    cart = await cartRepository.find(cartId);
   }
 
-  // Try by userId
-  if (userId) {
-    const userCart = await cartRepository.findByUserId(userId);
-    if (userCart) return userCart;
+  // Cuando no encontro cart por el cartId, Pero el usuario esta logueado
+  if (!cart && userId) {
+    cart = await cartRepository.findByUserId(userId);
   }
 
-  // Create new cart (linked to user if provided)
-  return await cartRepository.create(userId || null);
+  // Cuando no tiene cartId, puede tener userId, CREAMOS UN CARRITO
+  if (!cart) {
+    cart = await cartRepository.create(userId);
+  }
+
+  return cart;
 }
 
 export async function addItemToCart(cartId, productId, userId = null) {
-  let cart = null;
-  if (cartId) cart = await cartRepository.find(cartId);
-  if (!cart && userId) cart = await cartRepository.findByUserId(userId);
-  if (!cart) {
-    cart = await cartRepository.create(userId || null);
+  const cart = await getOrCreateCart(cartId, userId);
+
+  // Buscamos el producto que el usuario agrego al carrito de compras
+  const cartItem = cart.items.find(
+    (product) => product.productId === productId,
+  ); // { productId: 2, quantity: 1 }
+
+  if (cartItem) {
+    cartItem.quantity += 1;
+  } else {
+    cart.items.push({ productId, quantity: 1 });
   }
 
-  const product = (await productRepository.findAll()).find((p) => p.id === Number(productId));
-  if (!product) throw new Error("Producto no encontrado");
+  const updateCart = await cartRepository.update(cart);
 
-  const item = cart.items.find((it) => it.productId === Number(productId));
-  if (item) item.quantity += 1;
-  else cart.items.push({ productId: Number(productId), quantity: 1 });
-
-  // If cart is linked to a user but cookie existed for guest, keep server-side ownership (no cookie needed)
-  await cartRepository.update(cart);
-  return cart;
+  return updateCart;
 }
 
-export async function updateItemQuantity(cartId, productId, quantity) {
-  if (!cartId) throw new Error("cartId requerido");
+export async function updateItemToCart(cartId, productId, quantity) {
   const cart = await cartRepository.find(cartId);
-  if (!cart) throw new Error("Carrito no encontrado");
-  const item = cart.items.find((it) => it.productId === Number(productId));
-  if (item) item.quantity = Number(quantity);
-  await cartRepository.update(cart);
-  return cart;
+
+  const cartItem = cart.items.find(
+    (product) => product.productId === productId,
+  );
+
+  if (cartItem) {
+    cartItem.quantity = quantity;
+  }
+
+  const updateCart = await cartRepository.update(cart);
+
+  return updateCart;
 }
 
-export async function removeItemFromCart(cartId, productId) {
-  if (!cartId) return null;
+export async function deleteItemToCart(cartId, productId) {
   const cart = await cartRepository.find(cartId);
-  if (!cart) return null;
-  cart.items = cart.items.filter((it) => it.productId !== Number(productId));
+
+  // Filtramos el producto que deseamos eliminar del carrito de compras
+  cart.items = cart.items.filter((item) => item.productId !== productId);
+
   await cartRepository.update(cart);
+
   return cart;
 }
 
 export async function clearCart(cartId) {
-  if (!cartId) return;
   const cart = await cartRepository.find(cartId);
+
   if (!cart) return;
+
   cart.items = [];
+
   await cartRepository.update(cart);
 }
 
 export async function mergeCarts(guestCartId, userId) {
-  if (!guestCartId || !userId) return null;
-  const guest = await cartRepository.find(guestCartId);
-  if (!guest) return null;
-  const userCart = (await cartRepository.findByUserId(userId)) || (await cartRepository.create(userId));
+  const guestCart = await cartRepository.find(guestCartId);
 
-  // Consolidate items: sum quantities for same productId
-  for (const item of guest.items) {
-    const existing = userCart.items.find((it) => it.productId === Number(item.productId));
-    if (existing) existing.quantity += Number(item.quantity);
-    else userCart.items.push({ productId: Number(item.productId), quantity: Number(item.quantity) });
+  if (!guestCart || guestCart.items.length === 0) return;
+
+  let userCart = await cartRepository.findByUserId(userId);
+
+  if (!userCart) {
+    userCart = await cartRepository.create(userId);
   }
 
+  for (const guestItem of guestCart.items) {
+    // Hacemos una busqueda para verificar si el item del carrito huerfano se encuentra en mi carrito de usuario logueado
+    const existItem = userCart.items.find(
+      (userItem) => userItem.productId === guestItem.productId,
+    );
+
+    if (existItem) {
+      existItem.quantity += guestItem.quantity;
+    } else {
+      userCart.items.push(guestItem);
+    }
+  }
+
+  // Actualizamos nuestra data
   await cartRepository.update(userCart);
-  // remove guest cart
-  await cartRepository.remove(guestCartId);
-  return userCart;
+
+  // Eliminamos el carrito de invitado
+  await cartRepository.destroy(guestCartId);
 }

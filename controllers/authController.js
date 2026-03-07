@@ -1,61 +1,80 @@
 import * as authService from "../services/authService.js";
-import { setCookie, clearCookie } from "../utils/cookieUtils.js";
 import * as cartService from "../services/cartService.js";
 import * as orderService from "../services/orderService.js";
+import { clearCookie, setCookie } from "../utils/cookiesUtils.js";
 
 export async function renderSignup(req, res) {
-  // Redirect logged users away from signup page
-  if (req.user) return res.redirect("/");
-  res.render("signup", { namePage: "Crear cuenta", error: null, values: {} });
+  if (req.user) {
+    return res.redirect("/");
+  }
+  res.render("signup");
 }
 
 export async function handleSignup(req, res) {
-  const { email, password, confirmPassword } = req.body;
-  try {
-    const user = await authService.signup({ email, password, confirmPassword });
+  if (req.user) {
+    return res.redirect("/");
+  }
+  const { email: emailBody, password, confirmPassword } = req.body;
 
-    // If guest had a cart, merge into user cart
-    const guestCartId = req.cartId || null;
-    if (guestCartId) {
-      await cartService.mergeCarts(guestCartId, user.id);
-      clearCookie(res, "cartId");
+  const email = emailBody.toLowerCase();
+
+  try {
+    const newUser = await authService.signup(email, password, confirmPassword);
+
+    setCookie(res, "userId", newUser.id, { signed: true });
+
+    // Vinculamos las ordenes pasadas que usuaron este email
+    await orderService.linkPastOrderByEmail(newUser.email, newUser.id);
+
+    // fusionamos el carrito de invitado con el carrito del usuario recien creado
+    if (req.cartId) {
+      await cartService.mergeCarts(req.cartId, newUser.id);
     }
 
-    // Link past orders by email to this new user
-    await orderService.linkPastOrdersToUser(email, user.id);
-
-    return res.redirect("/login");
-  } catch (err) {
-    const message = err && err.message ? err.message : "Error inesperado";
-    return res.render("signup", { error: message, values: { email } });
+    res.redirect("/");
+  } catch (error) {
+    res.render("signup", {
+      error: error.message,
+      values: { email },
+    });
   }
 }
 
 export async function renderLogin(req, res) {
-  if (req.user) return res.redirect("/");
-  res.render("login", { namePage: "Iniciar sesión", error: null, values: {} });
+  if (req.user) {
+    return res.redirect("/");
+  }
+  res.render("login");
 }
 
 export async function handleLogin(req, res) {
+  if (req.user) {
+    return res.redirect("/");
+  }
+
   const { email, password } = req.body;
+
   try {
     const user = await authService.login(email, password);
-    // set cookie and redirect
-    setCookie(res, "userId", String(user.id));
-    // merge guest cart into user cart if exists
-    const guestCartId = req.cartId || null;
-    if (guestCartId) {
-      await cartService.mergeCarts(guestCartId, user.id);
-      clearCookie(res, "cartId");
+
+    setCookie(res, "userId", user.id, { signed: true });
+
+    // fusionamos el carrito de invitado con el carrito del usuario logueado
+    if (req.cartId) {
+      await cartService.mergeCarts(req.cartId, user.id);
     }
-    return res.redirect("/");
-  } catch (err) {
-    const message = err && err.message ? err.message : "Error inesperado";
-    return res.render("login", { error: message, values: { email } });
+
+    res.redirect("/");
+  } catch (error) {
+    res.render("login", {
+      error: error.message,
+      values: { email },
+    });
   }
 }
 
 export async function handleLogout(_req, res) {
   clearCookie(res, "userId");
-  return res.redirect("/");
+
+  res.redirect("/");
 }

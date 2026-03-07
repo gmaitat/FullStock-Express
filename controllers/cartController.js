@@ -1,63 +1,76 @@
 import * as cartService from "../services/cartService.js";
+import * as productService from "../services/productService.js";
+import { setCookie } from "../utils/cookiesUtils.js";
 import { AppError } from "../utils/errorUtils.js";
 
-const COOKIE_NAME = "cartId";
-
-function cookieOptions() {
-  return {
-    httpOnly: true,
-    // secure: true, // enable in production with HTTPS
-    sameSite: "lax",
-    maxAge: 7 * 24 * 60 * 60 * 1000,
-    signed: true,
-  };
-}
-
-export async function addItem(req, res) {
-  const productId = Number(req.body.productId);
-  const currentCartId = req.cartId || null;
-  const userId = req.user ? req.user.id : null;
-
-  try {
-    const cart = await cartService.addItemToCart(currentCartId, productId, userId);
-
-    // If cart was created for guest (no user), set cookie
-    if (!userId && (!currentCartId || Number(currentCartId) !== Number(cart.id))) {
-      res.cookie(COOKIE_NAME, cart.id, cookieOptions());
-    }
-
-    // If user is logged, ensure no guest cart cookie remains
-    if (userId) {
-      res.clearCookie(COOKIE_NAME, cookieOptions());
-    }
-
-    res.redirect(`/product/${productId}`);
-  } catch (err) {
-    throw new AppError(err.message || "Error al agregar item", 500);
-  }
-}
-
 export async function renderCart(req, res) {
-  const cart = req.cart || { items: [], total: 0 };
-  res.render("cart", { cartItems: cart.items, total: cart.total });
+  const cartId = req.cartId;
+  const { items, total } = await cartService.getCart(cartId);
+
+  res.render("cart", {
+    cartItems: items,
+    total: total,
+  });
 }
 
-export async function updateItem(req, res) {
-  const { productId, quantity } = req.body;
+export async function addItemToCart(req, res) {
+  const cartId = req.cartId; // 4
+  const userId = req.user?.id;
+  const productId = parseInt(req.body.productId);
+
+  const productFinded = await productService.getProductById(productId);
+
+  if (!productFinded) {
+    throw new AppError(
+      "El producto seleccionado no se encuentra disponible",
+      404,
+    );
+  }
+
+  const cart = await cartService.addItemToCart(cartId, productId, userId);
+
+  if (!cartId || cartId !== cart.id) {
+    setCookie(res, "cartId", cart.id, { signed: true });
+  }
+
+  res.redirect(`/product/${productId}`);
+}
+
+export async function updateItemToCart(req, res) {
   const cartId = req.cartId;
-  if (!cartId) throw new AppError("Carrito no encontrado", 400);
-  await cartService.updateItemQuantity(
-    cartId,
-    Number(productId),
-    Number(quantity),
-  );
+  const productId = parseInt(req.body.productId);
+  const quantity = parseInt(req.body.quantity);
+
+  const productFinded = await productService.getProductById(productId);
+
+  if (!productFinded) {
+    throw new AppError(
+      "El producto seleccionado no se encuentra disponible",
+      404,
+    );
+  }
+
+  if (isNaN(quantity) || quantity < 0) {
+    throw new AppError("La cantidad Ingresada es incorrecta", 400);
+  }
+
+  await cartService.updateItemToCart(cartId, productId, quantity);
   res.redirect("/cart");
 }
 
-export async function deleteItem(req, res) {
-  const { productId } = req.body;
+export async function deleteItemToCart(req, res) {
   const cartId = req.cartId;
-  if (!cartId) return res.redirect("/cart");
-  await cartService.removeItemFromCart(cartId, Number(productId));
+  const productId = parseInt(req.body.productId);
+
+  const productFinded = await productService.getProductById(productId);
+
+  if (!productFinded) {
+    throw new AppError(
+      "El producto seleccionado no se encuentra disponible",
+      404,
+    );
+  }
+
+  await cartService.deleteItemToCart(cartId, productId);
   res.redirect("/cart");
 }

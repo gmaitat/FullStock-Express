@@ -1,11 +1,7 @@
-import { getDb } from "../db.js";
+import { getData } from "../data/db.js";
 
 export async function findAll() {
-  const db = await getDb();
-  return db.categories || [];
-}
+  const data = await getData();
 
-export async function findBySlug(slug) {
-  const categories = await findAll();
-  return categories.find((c) => c.slug === slug);
+  return data.categories;
 }

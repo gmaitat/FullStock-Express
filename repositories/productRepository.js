@@ -1,11 +1,15 @@
-import { getDb } from "../db.js";
+import { getData } from "../data/db.js";
 
 export async function findAll() {
-  const db = await getDb();
-  return db.products || [];
+  const data = await getData();
+
+  return data.products;
 }
 
 export async function findById(id) {
-  const products = await findAll();
-  return products.find((p) => p.id === Number(id));
+  const data = await getData();
+
+  const productFinded = data.products.find((product) => product.id === id);
+
+  return productFinded || null;
 }

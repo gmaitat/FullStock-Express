@@ -1,44 +1,35 @@
 import * as userService from "../services/userService.js";
-import { clearCookie, getCookie } from "../utils/cookieUtils.js";
+import { clearCookie } from "../utils/cookiesUtils.js";
 
 export async function authContext(req, res, next) {
-  // default for templates
+  req.user = null;
   res.locals.user = null;
 
-  const raw = getCookie(req, "userId");
-  // If signature invalid, cookie-parser returns false
-  if (raw === undefined) return next();
-  if (raw === false) {
+  const userId = req.signedCookies.userId; //undefined, false, s%3A2.n%2FOmA0Ddcl3GNnfpEAtb%2F9Awl6fdIeo8tffBj2LabEc
+
+  // caso 1 : Si la cookie es corrompida
+  if (userId === false) {
     clearCookie(res, "userId");
     return next();
   }
 
-  const id = Number(raw);
-  if (!Number.isFinite(id)) {
+  // Caso 2 : Si el userId No existe
+  if (!userId) return next();
+
+  // caso 3: Si el userId Existe, buscamos al usuario
+  const user = await userService.getUserById(parseInt(userId));
+  console.log(user);
+
+  // Si el usuario no existe en mi base de datos, limpiamos la cookie
+  if (!user) {
     clearCookie(res, "userId");
     return next();
   }
 
-  // We need to find user by id; repository doesn't have findById, so search DB via users list
-  try {
-    const maybeUser = await findUserById(id);
-    if (!maybeUser) {
-      clearCookie(res, "userId");
-      return next();
-    }
-    req.user = maybeUser;
-    res.locals.user = maybeUser;
-    return next();
-  } catch (err) {
-    clearCookie(res, "userId");
-    return next();
-  }
-}
+  req.user = user;
+  res.locals.user = user;
 
-import { getDb } from "../db.js";
+  console.log(req.user, "aQUIII");
 
-async function findUserById(id) {
-  const db = await getDb();
-  const users = db.users || [];
-  return users.find((u) => u.id === Number(id)) || null;
+  next();
 }

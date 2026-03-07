@@ -4,7 +4,7 @@
       <div class="checkout__summary">
         <h2 class="checkout__summary_title">Resumen de la orden</h2>
         <div class="checkout__summary_container">
-          <% for (const item of cartItems) { %>
+          <% for(const item of cartItems) { %>
           <div class="checkout__item">
             <div class="checkout__item-image">
               <img
@@ -29,7 +29,7 @@
           <% } %>
           <div class="checkout__total">
             <p>Total</p>
-            <p>S/ <%= total.toFixed(2) %></p>
+            <p><%= total.toFixed(2) %></p>
           </div>
         </div>
       </div>
@@ -42,9 +42,9 @@
             name="email"
             type="email"
             autocomplete="email"
+            value="<%= user ? user.email : "" %>"
+            <%= user ? 'readonly': '' %>
             required
-            value="<%= user ? user.email : '' %>"
-            <%= user ? 'readonly' : '' %>
           />
         </div>
         <div class="separator checkout__separator"></div>

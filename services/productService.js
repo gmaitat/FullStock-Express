@@ -1,21 +1,24 @@
 import * as productRepository from "../repositories/productRepository.js";
 
-export async function getProductsByCategory(categoryId, filters = {}) {
+export async function getProductsByCategory(categoryId, filters) {
   const products = await productRepository.findAll();
 
-  const minPrice =
-    typeof filters.minPrice === "number" ? filters.minPrice : -Infinity;
-  const maxPrice =
-    typeof filters.maxPrice === "number" ? filters.maxPrice : Infinity;
+  // Nullish Coalescing
+  const minPrice = filters.minPrice ?? -Infinity;
+  const maxPrice = filters.maxPrice ?? Infinity;
 
-  return products.filter((product) => {
-    const belongsToCategory = product.categoryId === categoryId;
-    const meetsMinPrice = product.price >= minPrice;
-    const meetsMaxPrice = product.price <= maxPrice;
-    return belongsToCategory && meetsMinPrice && meetsMaxPrice;
-  });
+  // Obtenemos todos los productos que tengan la categoria encontrada
+  const productsFilter = products.filter(
+    (product) =>
+      product.categoryId === categoryId &&
+      product.price >= minPrice &&
+      product.price <= maxPrice,
+  );
+
+  return productsFilter;
 }
 
-export async function getProductById(id) {
-  return await productRepository.findById(id);
+export async function getProductById(productId) {
+  const product = await productRepository.findById(productId);
+  return product;
 }

@@ -1,10 +1,15 @@
 <section class="section">
+  <% if(cartItems.length === 0) { %>
+  <div>
+    <img src="/images/cart-empty.png" alt="" />
+    <h2>No hay productos en tu carrito de compras</h2>
+  </div>
+  <% } else { %>
   <div class="container cart">
     <h1 class="cart__title">Carrito de compras</h1>
     <div class="cart__container">
-      <% if (cartItems && cartItems.length > 0) { %>
-      <% cartItems.forEach(function(item) { %>
-      <div id="product-<%= item.productId %>" class="cart__item">
+      <% cartItems.forEach((item) => { %>
+      <div id="<%= `product-${item.productId}` %>" class="cart__item">
         <div class="cart__item-image">
           <img
             src="<%= item.product.imgSrc %>"
@@ -97,14 +102,7 @@
           >Continuar Compra</a
         >
       </div>
-      <% } else { %>
-      <p class="cart__empty">Tu carrito está vacío</p>
-      <div class="cart__action">
-        <a class="button button--lg cart__action-button" href="/"
-          >Ir a comprar</a
-        >
-      </div>
-      <% } %>
     </div>
   </div>
+  <% } %>
 </section>
